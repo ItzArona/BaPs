@@ -67,9 +67,7 @@ func GenGachaResults(goodsId int64) []*ParcelResult {
 		return results
 	}
 	genGacha := func(gachaGoodsId, gachaNum int64) {
-		// 概率生成
-			// 概率生成
-	genGacha := func(gachaGoodsId, gachaNum int64) {
+	    // 概率生成
 		ges := make(map[int]*gdconf.GachaElementGroupId)
 		var probabilityList []int
 		var upParcelId int64
@@ -79,21 +77,17 @@ func GenGachaResults(goodsId int64) []*ParcelResult {
 				continue
 			}
 			switch ge.Rarity {
-			case "SSR": // 目标总概率 21.5% (21500)
+			case "SSR": // 0.03
 				ssrNUm := len(ge.GachaElementExcelList)
 				if ssrNUm == 1 {
 					upParcelId = ge.GachaElementExcelList[0].ParcelId
-					// UP角色概率保持 0.75% (750)
 					probability += 700 + 50
 				} else {
-					// 常驻SSR概率 = 原 2.25% (2250) + 新增 18.5% (18500) = 20.75% (20750)
-					probability += 20750
+					probability += 20750 - 50
 				}
-			case "SR": // 目标总概率 28.5% (28500)
-				// 原 18.5% (18500) + 新增 10% (10000)
+			case "SR": // 0.185
 				probability += 28500
-			case "R": // 目标总概率 50% (50000)
-				// 原 78.5% (78500) - 扣减 28.5% (28500)
+			case "R": // 0.785
 				probability += 50000
 			}
 			ges[probability] = ge
