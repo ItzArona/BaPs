@@ -6,10 +6,9 @@ import (
 
 // commonConfig 新版客户端 SDK 配置
 // 对应 POST /common/config
-// 真实响应格式: {"Code":200,"Data":{"AppConfig":{...}},"Msg":"OK"}
+// 代理到官方服务器获取真实响应,避免因字段缺失导致客户端 NullReferenceException
 func commonConfig(c *gin.Context) {
-	c.Header("Content-Type", "application/json; charset=utf-8")
-	c.String(200, `{"Code":200,"Data":{"AppConfig":{"ACCOUNT_RETRIEVAL":{"FIRST_LOGIN_POPUP":false,"LOGIN_POPUP":false,"PAGE_URL":""},"AGREEMENT_POPUP_TYPE":"Browser","APPLE_CURRENCY_BLOCK_LIST":null,"APPLE_TYPE_KEY":"apple_jp","APP_CLIENT_LANG":["ja"],"APP_DEBUG":0,"APP_GL":"ja","AUTO_LOGIN_URL":[],"BIND_METHOD":["google","apple_jp","amazon"],"CAPTCHA_ENABLED":false,"CLIENT_LOG_REPORTING":{"ENABLE":false},"CREDIT_INVESTIGATION":"0.0","DESTROY_USER_DAYS":0,"DESTROY_USER_ENABLE":1,"DETECTION_ADDRESS":{"AUTO":{"DNS":["https://jp-sdk-api.yostarplat.com","https://prod-clientpatch.bluearchiveyostar.com/test.txt","https://prod-gateway.bluearchiveyostar.com:5100/api/Queuing/Ping"],"HTTP":["https://jp-sdk-api.yostarplat.com","https://prod-clientpatch.bluearchiveyostar.com/test.txt","https://prod-gateway.bluearchiveyostar.com:5100/api/Queuing/Ping"],"MTR":["https://jp-sdk-api.yostarplat.com","https://prod-clientpatch.bluearchiveyostar.com/test.txt","https://prod-gateway.bluearchiveyostar.com:5100/api/Queuing/Ping"],"PING":["https://jp-sdk-api.yostarplat.com","https://prod-clientpatch.bluearchiveyostar.com/test.txt","https://prod-gateway.bluearchiveyostar.com:5100/api/Queuing/Ping"],"TCP":["https://jp-sdk-api.yostarplat.com","https://prod-clientpatch.bluearchiveyostar.com/test.txt","https://prod-gateway.bluearchiveyostar.com:5100/api/Queuing/Ping"]},"ENABLE":false,"ENABLE_MANUAL":false,"INTERNET":"https://www.google.com","INTERNET_ADDRESS":"https://www.google.com"},"ENABLE_AGREEMENT":true,"ENABLE_MULTI_LANG_AGREEMENT":false,"ENABLE_TEXT_REVIEW":true,"ERROR_CODE":"5.5","FILE_DOMAIN":"https://storage.googleapis.com/sdkplat-jp-prod","GEETEST_ENABLE":false,"GEETEST_ID":"00b06e0a4ed58bd1c2ad59f1b054ade0","GOOGLE_ANALYTICS_MEASUREMENT_ID":"","MIGRATE_POPUP":false,"NICKNAME_REG":"^[A-Za-z0-9぀-ゟ゠-ヿ一-龥]{2,16}$","PASSPORT_DESTROY_DAYS":15,"PRIVACY_AGREEMENT":"0.1","RECHARGE_LIMIT":{"Enable":false,"IsOneLimit":false,"Items":[],"OneLimitAmount":0}}},"Msg":"OK"}`)
+	proxyToOfficial(c, "/common/config")
 }
 
 func getSettings(c *gin.Context) {

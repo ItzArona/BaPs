@@ -80,10 +80,9 @@ func (s *SDK) rootHandler(c *gin.Context) {
 }
 
 // commonVersion 新版客户端版本检查
-// 真实响应: {"Code":200,"Data":{"Agreement":[...],"ErrorCode":"5.5"},"Msg":"OK"}
+// 代理到官方服务器获取真实响应
 func commonVersion(c *gin.Context) {
-	c.Header("Content-Type", "application/json; charset=utf-8")
-	c.String(200, `{"Code":200,"Data":{"Agreement":[{"Version":"0.1","Type":"user_agreement","Title":"用户协议","Content":"","Lang":"ja"},{"Version":"0.1","Type":"privacy_agreement","Title":"隐私政策","Content":"","Lang":"ja"}],"ErrorCode":"5.5"},"Msg":"OK"}`)
+	proxyToOfficial(c, "/common/version")
 }
 
 func handleIndex(c *gin.Context) {
