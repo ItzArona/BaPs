@@ -50,3 +50,13 @@ buildBaBot.bat
 
 #VibeCodingDocuments
 /.claude
+
+# 本地隐私文件(含服务器地址/密钥等,请勿提交)
+/config.json
+/redirect_server.py
+/mitmproxy_*.py
+/mitmproxy_log.txt
+/*.local.json
+/data/Excel.bin
+/sqlite/*.db
+/.temp

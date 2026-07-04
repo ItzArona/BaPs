@@ -38,6 +38,10 @@ func (g *Gateway) initRouter() {
 	api := g.router.Group("/api")
 	{
 		api.POST("/gateway", check.GinNoLite(), g.gateWay)
+		// 新版客户端连接性检测: GET /api/Queuing/Ping -> "Pong"
+		api.GET("/Queuing/Ping", func(c *gin.Context) {
+			c.String(http.StatusOK, "Pong")
+		})
 	}
 }
 
