@@ -11,7 +11,6 @@ sqlcipher3 + JP 服的 SQLCipher key 解密后,同样用 BLT 处理。
 """
 import json
 import os
-import re
 import shutil
 import sys
 from pathlib import Path
@@ -34,26 +33,86 @@ JP_SQLCIPHER_KEY = os.environ.get(
 )
 
 
-def patch_blt_compiler_bug(flatdata_dir: Path) -> None:
-    """修复 BLT compiler.py 生成的 GachaSelectPickupGroupExcel.py 重复定义。
+# 这些文件不能被 stub(stub 会破坏其核心功能)
+_NO_STUB = {"__init__.py", "dump_wrapper.py", "repack_wrapper.py"}
 
-    BLT 的 compiler 把同名 struct 的重复定义拼接进同一文件,导致 builder 方法
-    带错误缩进(IndentationError)。这些方法只用于构建 flatbuffer,不影响读取,
-    直接删掉重复段即可。
+
+def patch_blt_compiler_bug(flatdata_dir: Path) -> None:
+    """修复 BLT compiler.py 生成的 .py 文件中的语法错误。
+
+    BLT 的 compiler 把同名 struct 的重复定义拼接进同一文件,产生错误缩进的
+    `def AddXxx` 行(IndentationError)。用 compile() 逐文件检测,发现语法错误时
+    截断到出错行之前(这些行都是重复的 builder 方法,只用于构建 flatbuffer,
+    读取不需要)。
+
+    如果截断后仍然有语法错误(例如截断导致不完整的语句),则用最小 stub 替换
+    该文件——定义与文件名同名的空类,确保 import 不会失败。对于
+    dump_wrapper.py 等关键文件不进行 stub,仅依赖截断。
     """
-    target = flatdata_dir / "GachaSelectPickupGroupExcel.py"
-    if not target.exists():
+    for pyfile in sorted(flatdata_dir.glob("*.py")):
+        ok = False
+        for _ in range(10):  # 安全上限,防止死循环
+            text = pyfile.read_text(encoding="utf8")
+            try:
+                compile(text, str(pyfile), "exec")
+                ok = True
+                break
+            except SyntaxError as e:
+                if not e.lineno or e.lineno <= 1:
+                    break
+                lines = text.splitlines(keepends=True)
+                fixed = "".join(lines[: e.lineno - 1]).rstrip() + "\n"
+                if fixed == text.rstrip() + "\n":
+                    break
+                pyfile.write_text(fixed, encoding="utf8")
+                print(f"patched {pyfile.name} at line {e.lineno}: {e.msg}")
+
+        if ok:
+            continue
+
+        # 截断后仍有语法错误
+        if pyfile.name in _NO_STUB:
+            print(
+                f"WARNING: {pyfile.name} still has syntax errors after truncation"
+            )
+            continue
+
+        # 用 stub 替换:定义与文件名同名的空类,使 __init__.py 的
+        # `from .Xxx import Xxx` 能正常导入。该类的 GetRootAs 等方法
+        # 缺失,TableExtractor._process_bytes_file 会静默跳过此表。
+        class_name = pyfile.stem
+        pyfile.write_text(f"class {class_name}:\n    pass\n", encoding="utf8")
+        print(f"stubbed {pyfile.name} (unfixable syntax error)")
+
+
+def patch_init_file(flatdata_dir: Path) -> None:
+    """重写 FlatData/__init__.py,用 try/except 包裹每个 import。
+
+    BLT 生成的 __init__.py 形如:
+        from .XxxExcel import XxxExcel
+        from .YyyEnum import YyyEnum
+    如果任何一个模块有语法错误,整个包 import 会失败,导致所有表提取
+    全部失效(ok=0, fail=406)。用 try/except 包裹后,单个模块导入失败
+    只影响对应的表,其余表正常提取。
+    """
+    init_file = flatdata_dir / "__init__.py"
+    if not init_file.exists():
         return
-    text = target.read_text(encoding="utf8")
-    fixed = re.sub(
-        r"\n def AddNameKr\(builder.*\Z",
-        "\n",
-        text,
-        flags=re.DOTALL,
-    )
-    if fixed != text:
-        target.write_text(fixed, encoding="utf8")
-        print(f"patched {target.name}")
+
+    lines = init_file.read_text(encoding="utf8").splitlines()
+    new_lines: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("from .") and " import " in stripped:
+            new_lines.append("try:")
+            new_lines.append(f"    {stripped}")
+            new_lines.append("except Exception:")
+            new_lines.append("    pass")
+        else:
+            new_lines.append(line)
+
+    init_file.write_text("\n".join(new_lines) + "\n", encoding="utf8")
+    print("patched __init__.py with try/except guards")
 
 
 def generate_flatdata() -> None:
@@ -64,6 +123,7 @@ def generate_flatdata() -> None:
     print("Compiling FlatData from types.cs...")
     compile_python(str(TYPES_CS), str(EXTRACTED))
     patch_blt_compiler_bug(FLATDATA_DIR)
+    patch_init_file(FLATDATA_DIR)
     print(f"FlatData generated: {len(os.listdir(FLATDATA_DIR))} files")
 
 
