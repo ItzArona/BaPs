@@ -45,6 +45,8 @@ buildBaBot.bat
 /venv
 /ExcelDB_raw
 /baax
+/.venv
+/__pycache__
 
 #VibeCodingDocuments
 /.claude
